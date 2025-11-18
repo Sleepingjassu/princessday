@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Princess Day Wishes & Heart Catcher Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+  html, body {
+    margin:0; padding:0; height:100%;
+    background: linear-gradient(135deg, #1c001c 0%, #ff00bf 85%);
+    font-family: 'Poppins', sans-serif;
+    overflow-x: hidden;
+    color: #ffe0f7;
+  }
+  #container {
+    max-width: 720px;
+    margin: auto;
+    padding: 30px 20px 80px;
+    text-align: center;
+    background: rgba(40,0,40,0.8);
+    border-radius: 20px;
+    box-shadow: 0 0 40px #ff48d3aa;
+    margin-top: 40px;
+  }
+  h1 {
+    font-size: 3em;
+    margin-bottom: 12px;
+    color: #ff6fc6;
+    text-shadow: 0 0 12px #ff00bfcc;
+  }
+  p {
+    font-weight: 400;
+    line-height: 1.6;
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto 30px;
+    letter-spacing: 0.02em;
+  }
+  #game-title {
+    font-weight: 700;
+    font-size: 1.8rem;
+    margin-bottom: 14px;
+    color: #ffc1e9;
+    text-shadow: 0 0 8px #ff3dd4cc;
+  }
+  #game {
+    position: relative;
+    margin: 20px auto 40px;
+    width: 100%;
+    max-width: 500px;
+    height: 320px;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #2d002d;
+    box-shadow: 0 0 22px #ff69b4cc inset;
+    border: 3px solid #ff69b4;
+  }
+  #catcher {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 20px;
+    background: #ff39ba;
+    border-radius: 12px;
+    box-shadow: 0 0 12px #ff3dc6;
+  }
+  .heart {
+    position: absolute;
+    top: -40px;
+    font-size: 26px;
+    color: #ff85dd;
+    text-shadow: 0 0 9px #ff00bfaa;
+    user-select: none;
+    pointer-events: none;
+    animation-timing-function: linear;
+  }
+  #scoreboard, #dialog {
+    font-weight: 700;
+    color: #ff00bfa0;
+    font-size: 1.5rem;
+    margin-top: 5px;
+    text-shadow: 0 0 10px #ff69b4bb;
+    user-select: none;
+    min-height: 30px;
+  }
+  /* Responsive typography */
+  @media (max-width: 480px) {
+    h1 { font-size: 2.4em; }
+    p { font-size: 1rem; }
+    #game { height: 240px; }
+    #catcher { width: 70px; height: 15px; }
+  }
+</style>
+</head>
+<body>
+<div id="container" role="main" aria-label="Princess Day Wishes and Heart catch game">
+  <h1>🎀 Happy Princess Day! 🎀</h1>
+  <p>
+    To my enchanting princess, on this special day I wish you endless joy and magic. 
+    Your smile lights up even the darkest nights, and your kindness weaves dreams that sparkle like stars. 
+    Through every moment—in laughter, hope, and forever—I promise to cherish you deeply. 
+    May this day remind you how truly loved and cherished you are, today and always. 💖
+  </p>
+
+  <div id="game-title">Catch the Falling Hearts 💕</div>
+  <div id="game" aria-label="Heart catching game area" tabindex="0">
+    <div id="catcher" role="button" aria-label="Move catcher to catch hearts"></div>
+  </div>
+  <div id="scoreboard" aria-live="polite" aria-atomic="true">Score: 0 | Missed: 0</div>
+  <div id="dialog" aria-live="polite" aria-atomic="true"></div>
+</div>
+
+<audio id="bgMusic" autoplay loop>
+  <source src="barbaad_saiyaara.mp3" type="audio/mp3">
+  Your browser does not support the audio element.
+</audio>
+
+<script>
+  const game = document.getElementById('game');
+  const catcher = document.getElementById('catcher');
+  const scoreboard = document.getElementById('scoreboard');
+  const dialog = document.getElementById('dialog');
+  const audio = document.getElementById('bgMusic');
+
+  let score = 0;
+  let missed = 0;
+  let hearts = [];
+  const maxHearts = 10;
+  let gameActive = true;
+
+  let catcherX = game.clientWidth / 2 - catcher.clientWidth / 2;
+
+  function setCatcherPosition(x) {
+    catcherX = Math.min(Math.max(0, x), game.clientWidth - catcher.clientWidth);
+    catcher.style.left = catcherX + 'px';
+  }
+
+  function onPointerMove(e) {
+    if (!gameActive) return;
+    let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const rect = game.getBoundingClientRect();
+    let x = clientX - rect.left - catcher.clientWidth / 2;
+    setCatcherPosition(x);
+  }
+  game.addEventListener('mousemove', onPointerMove);
+  game.addEventListener('touchmove', onPointerMove);
+
+  // Heart creation & animation
+  function createHeart() {
+    if (!gameActive) return;
+    const heart = document.createElement('div');
+    heart.classList.add('heart');
+    heart.style.left = Math.random() * (game.clientWidth - 30) + 'px';
+    heart.style.top = '-40px';
+    heart.textContent = '❤️';
+    game.appendChild(heart);
+    hearts.push(heart);
+
+    const speed = 1 + Math.random() * 2.3;
+    let top = -40;
+
+    function fall() {
+      if (!heart.parentElement) return;
+      top += speed;
+      heart.style.top = top + 'px';
+
+      const catcherRect = catcher.getBoundingClientRect();
+      const heartRect = heart.getBoundingClientRect();
+
+      if (
+        heartRect.bottom >= catcherRect.top &&
+        heartRect.left + heartRect.width / 2 > catcherRect.left &&
+        heartRect.left + heartRect.width / 2 < catcherRect.right
+      ) {
+        // caught heart
+        if (!gameActive) return;
+        game.removeChild(heart);
+        hearts = hearts.filter(h => h !== heart);
+        score++;
+        updateScoreDialog();
+        checkEndGame();
+        return;
+      }
+
+      if (top > game.clientHeight) {
+        if (!gameActive) return;
+        game.removeChild(heart);
+        hearts = hearts.filter(h => h !== heart);
+        missed++;
+        updateScoreDialog();
+        checkEndGame();
+        return;
+      }
+      requestAnimationFrame(fall);
+    }
+    fall();
+  }
+
+  // Show status and dialogs based on score/missed
+  function updateScoreDialog() {
+    scoreboard.textContent = `Score: ${score} | Missed: ${missed}`;
+    if (score === 0) {
+      dialog.textContent = "Catch the hearts for love! 💕";
+    } else if (score < 5) {
+      dialog.textContent = "You're doing great, princess! ✨";
+    } else if (score < 10) {
+      dialog.textContent = "Wow! You're a heart-catching queen! 👑";
+    } else {
+      dialog.textContent = "Amazing! Keep shining like a star! 🌟";
+    }
+  }
+
+  // Reset game function
+  function resetGame() {
+    hearts.forEach(h => h.parentNode && h.parentNode.removeChild(h));
+    hearts = [];
+    score = 0;
+    missed = 0;
+    gameActive = true;
+    updateScoreDialog();
+  }
+
+  // Check for end condition: score or missed >= maxHearts
+  function checkEndGame() {
+    if (score >= maxHearts) {
+      dialog.textContent = "You caught all the hearts! You're a true princess! 👑💕 Restarting...";
+      gameActive = false;
+      setTimeout(() => resetGame(), 3500);
+    } else if (missed >= maxHearts) {
+      dialog.textContent = "Oops! Some hearts got away. Try again, princess! 💖 Restarting...";
+      gameActive = false;
+      setTimeout(() => resetGame(), 3500);
+    }
+  }
+
+  // Spawn hearts approx every 600ms
+  setInterval(() => { if(gameActive) createHeart(); }, 600);
+
+  // Initialize catcher in center and dialog
+  setCatcherPosition(catcherX);
+  updateScoreDialog();
+</script>
+</body>
+  </html>
